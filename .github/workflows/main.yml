@@ -8,92 +8,9 @@ name: DevSecOps
       - master
   workflow_dispatch: null
 jobs:
-  Lint:
-    name: Linter
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@master
-      - name: lint
-        uses: luke142367/Docker-Lint-Action@v1.0.0
-        with:
-          target: ./Dockerfile
-        env:
-          GITHUB_TOKEN: '${{ secrets.GITHUB_TOKEN }}'
-  ACR-DevSkim:
-    name: DevSkim
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - uses: microsoft/DevSkim-Action@v1
-      - uses: github/codeql-action/upload-sarif@v1
-        with:
-          sarif_file: devskim-results.sarif
-          output-filename: devskim-results.sarif
-          output-directory: $GITHUB_WORKSPACE
-      - name: artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: DevSkim-artifact
-          path: ./src
-  SIS-GitGuardian:
-    name: Secrets Scan
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: GitGuardian scan
-        uses: GitGuardian/gg-shield-action@master
-        env:
-          GITHUB_PUSH_BEFORE_SHA: '${{ github.event.before }}'
-          GITHUB_PUSH_BASE_SHA: '${{ github.event.base }}'
-          GITHUB_PULL_BASE_SHA: '${{ github.event.pull_request.base.sha }}'
-          GITHUB_DEFAULT_BRANCH: '${{ github.event.repository.default_branch }}'
-          GITGUARDIAN_API_KEY: '${{ secrets.GITGUARDIAN_API_KEY }}'
-      - name: artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: GitGuardian-artifact
-          path: ./src
-  SCA-Debricked:
-    name: Software Comp.Analysis
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-      - uses: debricked/actions/scan@v1
-        env:
-          USERNAME: '${{ secrets.DEBRICKED_USERNAME }}'
-          PASSWORD: '${{ secrets.DEBRICKED_PASSWORD }}'
-      - name: artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: Debricked-artifact
-          path: ./src
-  
- 
-  SAST-Sonarcloud:
-    name: SAST
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0
-      - name: SonarCloud Scan
-        uses: sonarsource/sonarcloud-github-action@master
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        
   Build-Docker:
     name: Image to Docker
     runs-on: ubuntu-latest
-    needs:
-      - SAST-Sonarcloud
     steps:
       - name: Checkout
         uses: actions/checkout@v2
@@ -110,7 +27,6 @@ jobs:
   Build-ECR:
     name: Image to AWS ECR
     runs-on: ubuntu-latest
-    needs: [SAST-Sonarcloud]
     steps:
       - name: Checkout
         uses: actions/checkout@v2
